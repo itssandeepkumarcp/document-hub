@@ -1,0 +1,71 @@
+erDiagram
+    Users ||--o{ Documents : uploads
+    Users {
+        int user_id PK
+        string email UK
+        string full_name
+        string role "employee|manager"
+        datetime created_at
+        datetime last_login
+        boolean is_active
+    }
+    
+    Projects ||--o{ Documents : contains
+    Projects {
+        int project_id PK
+        string project_name UK
+        string description
+        int created_by_user_id FK
+        datetime created_at
+        datetime updated_at
+        boolean is_active
+    }
+    
+    Categories ||--o{ DocumentCategories : "assigned to"
+    Categories {
+        int category_id PK
+        string category_name UK
+        string description
+        int created_by_user_id FK
+        datetime created_at
+        boolean is_active
+    }
+    
+    Documents ||--o{ DocumentCategories : "has many"
+    Documents {
+        int document_id PK
+        int project_id FK
+        string document_name
+        string original_filename
+        string file_path
+        string blob_url
+        string file_type
+        long file_size
+        string notes
+        string ocr_text
+        boolean ocr_processed
+        datetime ocr_processed_at
+        int uploaded_by_user_id FK
+        datetime uploaded_at
+        datetime updated_at
+        boolean is_deleted
+        int deleted_by_user_id FK
+        datetime deleted_at
+    }
+    
+    DocumentCategories {
+        int document_category_id PK
+        int document_id FK
+        int category_id FK
+        datetime assigned_at
+    }
+    
+    AuditLog {
+        int audit_id PK
+        int user_id FK
+        string entity_type "project|document|category"
+        int entity_id
+        string action "create|update|delete"
+        text changes_json
+        datetime action_timestamp
+    }

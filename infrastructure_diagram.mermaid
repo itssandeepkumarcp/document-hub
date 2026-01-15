@@ -1,0 +1,84 @@
+graph TB
+    subgraph "Client Layer"
+        WebApp[Web Application<br/>React/Angular]
+        MobileApp[Mobile App<br/>Optional]
+    end
+    
+    subgraph "Azure Front Door / Application Gateway"
+        AFD[Azure Front Door<br/>CDN + WAF + SSL]
+    end
+    
+    subgraph "Authentication"
+        AAD[Azure AD B2C<br/>Authentication & Authorization]
+    end
+    
+    subgraph "Application Layer - Azure Region"
+        subgraph "App Services"
+            API[Azure App Service<br/>REST API Backend<br/>.NET Core/Node.js]
+        end
+        
+        subgraph "Serverless Functions"
+            OCRFunc[Azure Function<br/>OCR Processing<br/>Event-driven]
+            SearchIndex[Azure Function<br/>Search Indexing<br/>Timer-triggered]
+        end
+    end
+    
+    subgraph "Data Layer"
+        subgraph "Storage"
+            BlobStorage[Azure Blob Storage<br/>Document Files<br/>Hot/Cool Tiers]
+        end
+        
+        subgraph "Database"
+            SQLDB[(Azure SQL Database<br/>Metadata & Relations<br/>or PostgreSQL)]
+        end
+        
+        subgraph "Search"
+            CogSearch[Azure Cognitive Search<br/>Full-text Search<br/>Document Content]
+        end
+        
+        subgraph "AI Services"
+            OCRService[Azure AI Document Intelligence<br/>Form Recognizer<br/>OCR Processing]
+        end
+    end
+    
+    subgraph "Monitoring & Management"
+        AppInsights[Application Insights<br/>Monitoring & Logging]
+        KeyVault[Azure Key Vault<br/>Secrets Management]
+    end
+    
+    subgraph "Message Queue"
+        ServiceBus[Azure Service Bus<br/>or Storage Queue<br/>Async Processing]
+    end
+    
+    WebApp --> AFD
+    MobileApp --> AFD
+    AFD --> AAD
+    AAD --> API
+    
+    API --> SQLDB
+    API --> BlobStorage
+    API --> CogSearch
+    API --> ServiceBus
+    
+    ServiceBus --> OCRFunc
+    OCRFunc --> OCRService
+    OCRFunc --> BlobStorage
+    OCRFunc --> SQLDB
+    OCRFunc --> CogSearch
+    
+    SearchIndex --> CogSearch
+    SearchIndex --> SQLDB
+    
+    API --> KeyVault
+    OCRFunc --> KeyVault
+    
+    API --> AppInsights
+    OCRFunc --> AppInsights
+    
+    style WebApp fill:#e1f5ff
+    style API fill:#fff4e1
+    style BlobStorage fill:#e8f5e9
+    style SQLDB fill:#e8f5e9
+    style OCRFunc fill:#fff4e1
+    style OCRService fill:#f3e5f5
+    style CogSearch fill:#e8f5e9

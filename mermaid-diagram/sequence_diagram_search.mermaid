@@ -1,0 +1,59 @@
+sequenceDiagram
+    participant User
+    participant WebApp as Web Application
+    participant AAD as Azure AD B2C
+    participant API as API Backend
+    participant Search as Cognitive Search
+    participant SQL as Azure SQL Database
+    participant Blob as Blob Storage
+
+    Note over User,Blob: Document Search Flow
+
+    User->>WebApp: Enter search query<br/>(keywords, filters: project, category, date)
+    
+    WebApp->>AAD: Validate session token
+    AAD-->>WebApp: Token valid
+    
+    WebApp->>API: GET /api/documents/search<br/>?q=keywords&project_id=1&category=legal&from_date=2024-01-01
+    
+    Note over API: Validate authentication<br/>Extract user context
+    
+    API->>Search: Search query with filters
+    Note over Search: Full-text search on:<br/>- document_name<br/>- notes<br/>- ocr_text<br/><br/>Filters on:<br/>- project_id<br/>- categories<br/>- uploaded_at
+    
+    Search-->>API: Ranked results with highlights<br/>[{document_id, score, highlights}]
+    
+    API->>SQL: SELECT documents with metadata<br/>WHERE document_id IN (...)
+    SQL-->>API: Full document records<br/>(including permissions)
+    
+    Note over API: Enrich results with:<br/>- User names<br/>- Project names<br/>- Category names<br/>- Check user permissions
+    
+    API-->>WebApp: 200 OK<br/>{results: [...], total_count, facets}
+    
+    WebApp-->>User: Display search results<br/>(with highlights & preview)
+    
+    Note over User,Blob: Document Download/Preview Flow
+    
+    User->>WebApp: Click to view/download document
+    
+    WebApp->>API: GET /api/documents/{id}/download
+    
+    API->>SQL: SELECT document & check permissions
+    SQL-->>API: Document record (if authorized)
+    
+    alt User has permission
+        API->>Blob: Generate SAS token<br/>(with 1-hour expiration)
+        Blob-->>API: Signed URL
+        
+        API->>SQL: INSERT AuditLog<br/>(action: download)
+        
+        API-->>WebApp: 200 OK<br/>{download_url: signed_url}
+        
+        WebApp->>Blob: Download file via signed URL
+        Blob-->>WebApp: File stream
+        
+        WebApp-->>User: Display/download document
+    else Permission denied
+        API-->>WebApp: 403 Forbidden
+        WebApp-->>User: Access denied message
+    end

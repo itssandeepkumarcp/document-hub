@@ -1,0 +1,69 @@
+sequenceDiagram
+    participant User
+    participant WebApp as Web Application
+    participant AAD as Azure AD B2C
+    participant API as API Backend
+    participant SQL as Azure SQL Database
+    participant Blob as Blob Storage
+    participant Queue as Service Bus Queue
+    participant OCR as OCR Function
+    participant DI as Document Intelligence
+    participant Search as Cognitive Search
+
+    Note over User,Search: Document Upload Flow
+
+    User->>WebApp: Select file & enter metadata
+    WebApp->>AAD: Authenticate user
+    AAD-->>WebApp: Return JWT token
+    
+    WebApp->>API: POST /api/documents/upload<br/>(file, project_id, categories, notes)
+    
+    Note over API: Validate user permissions<br/>Check file type & size
+    
+    API->>SQL: Check project exists & user has access
+    SQL-->>API: Project details
+    
+    API->>API: Generate unique document_id
+    
+    API->>Blob: Upload file to storage<br/>(documents/{project_id}/{document_id}/original.pdf)
+    Blob-->>API: Blob URL & confirmation
+    
+    API->>SQL: INSERT document record<br/>(blob_url, metadata, ocr_processed=false)
+    SQL-->>API: Document created
+    
+    API->>SQL: INSERT DocumentCategories<br/>(link document to categories)
+    SQL-->>API: Categories linked
+    
+    API->>Queue: Send message<br/>{document_id, blob_url}
+    Queue-->>API: Message queued
+    
+    API->>SQL: INSERT AuditLog<br/>(action: create)
+    
+    API-->>WebApp: 201 Created<br/>{document_id, status: "processing"}
+    WebApp-->>User: Upload successful!<br/>Processing in background...
+
+    Note over Queue,Search: Asynchronous OCR Processing
+
+    Queue->>OCR: Trigger with message
+    OCR->>Blob: Download document
+    Blob-->>OCR: File stream
+    
+    OCR->>DI: POST Read API<br/>(submit document)
+    DI-->>OCR: Operation ID
+    
+    loop Poll for completion
+        OCR->>DI: GET operation status
+        DI-->>OCR: Status: running/succeeded
+    end
+    
+    DI-->>OCR: Extracted text & confidence
+    
+    OCR->>SQL: UPDATE documents<br/>SET ocr_text=..., ocr_processed=true
+    SQL-->>OCR: Update confirmed
+    
+    OCR->>Search: Index document<br/>(document_id, ocr_text, metadata)
+    Search-->>OCR: Indexed successfully
+    
+    OCR->>SQL: INSERT AuditLog<br/>(action: ocr_completed)
+    
+    Note over User,Search: User can now search document content

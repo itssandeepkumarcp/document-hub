@@ -43,3 +43,47 @@ However, the client would like to investigate a possibility to search by documen
 
 We will ask you to present your solution in english.
 
+---
+
+## Solution Deliverables
+
+### 📋 Core Documentation
+- **[architecture_doc.md](architecture_doc.md)** - Complete solution architecture document with 12 comprehensive sections covering database design, Azure storage, OCR solution, infrastructure, cost estimation, security, and implementation timeline
+
+### 📊 Diagrams
+
+#### Database & Infrastructure
+- **[db_schema_diagram.mermaid](db_schema_diagram.mermaid)** - Complete database ER diagram with all tables and relationships
+- **[infrastructure_diagram.mermaid](infrastructure_diagram.mermaid)** - High-level Azure infrastructure architecture
+- **[deployment_diagram.mermaid](deployment_diagram.mermaid)** - Detailed production deployment with service specifications
+
+#### Sequence Diagrams (Process Flows)
+- **[sequence_diagram_upload.mermaid](sequence_diagram_upload.mermaid)** - Document upload and asynchronous OCR processing flow
+- **[sequence_diagram_search.mermaid](sequence_diagram_search.mermaid)** - Document search and secure download flow
+- **[sequence_diagram_admin.mermaid](sequence_diagram_admin.mermaid)** - Admin operations and role-based authorization flow
+
+### 📖 Reference
+- **[DIAGRAMS_README.md](DIAGRAMS_README.md)** - Guide to viewing and working with all diagrams
+- **[VALIDATION_REPORT.md](VALIDATION_REPORT.md)** - Compliance verification against requirements
+
+---
+
+## Quick Links
+
+| Requirement | Delivered Solution |
+|------------|-------------------|
+| Data Structure | [db_schema_diagram.mermaid](db_schema_diagram.mermaid) |
+| Azure Storage Solution | [architecture_doc.md - Section 2](architecture_doc.md#2-data-storage-solution-azure) |
+| OCR Solution | [architecture_doc.md - Section 3](architecture_doc.md#3-ocr-solution) |
+| Infrastructure Diagram | [infrastructure_diagram.mermaid](infrastructure_diagram.mermaid) + [deployment_diagram.mermaid](deployment_diagram.mermaid) |
+| Process Flows | [Sequence Diagrams](DIAGRAMS_README.md#4-sequence-diagrams) |
+
+---
+
+## How to View Diagrams
+
+All diagrams use **Mermaid** syntax and are automatically rendered on GitHub. You can also:
+- View/edit at [Mermaid Live Editor](https://mermaid.live/)
+- Use VS Code with Mermaid extension
+- See [DIAGRAMS_README.md](DIAGRAMS_README.md) for more options
+

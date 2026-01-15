@@ -26,4 +26,4 @@ Once done, please send us links or files to
 ●	Any other documents you would create
 
 We will ask you to present your solution in english.
-<img width="468" height="538" alt="image" src="https://github.com/user-attachments/assets/6edd60e5-0310-44c1-b9d3-a45fdd2e39a2" />
+

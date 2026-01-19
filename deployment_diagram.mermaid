@@ -1,0 +1,143 @@
+graph TB
+    subgraph "Internet"
+        Users[Users/Employees]
+    end
+
+    subgraph "Azure Cloud - Production Environment"
+        subgraph "Edge Layer"
+            AFD[Azure Front Door<br/>----------------------<br/>- WAF Protection<br/>- DDoS Protection<br/>- SSL/TLS Termination<br/>- Global CDN<br/>- Rate Limiting]
+        end
+
+        subgraph "Authentication Layer"
+            AAD[Azure AD B2C Tenant<br/>----------------------<br/>- User Directory<br/>- SSO/MFA<br/>- JWT Token Issuance<br/>- Role Claims]
+        end
+
+        subgraph "Presentation Layer - Azure Region: East US"
+            SWA[Azure Static Web Apps<br/>----------------------<br/>Deployment: Production<br/>- React SPA Bundle<br/>- Automatic HTTPS<br/>- Custom Domain<br/>- CDN Integrated]
+        end
+
+        subgraph "Application Layer - Azure Region: East US"
+            subgraph "App Service Plan - Standard S2"
+                API[Web App: document-hub-api<br/>----------------------<br/>Runtime: .NET 8 / Node.js 20<br/>Instances: 2-10 auto-scale<br/>- REST API Endpoints<br/>- JWT Validation<br/>- Role Authorization<br/>- Input Validation<br/>- Managed Identity]
+            end
+
+            subgraph "Function App - Consumption Plan"
+                Func1[Function: ocr-processor<br/>----------------------<br/>Trigger: Service Bus Queue<br/>Runtime: .NET 8 / Node.js<br/>Timeout: 10 minutes<br/>- Document OCR Processing<br/>- Managed Identity]
+                
+                Func2[Function: search-indexer<br/>----------------------<br/>Trigger: Timer 15 min<br/>Runtime: .NET 8 / Node.js<br/>- Index Updates<br/>- Managed Identity]
+                
+                Func3[Function: cleanup-job<br/>----------------------<br/>Trigger: Timer Daily<br/>Runtime: .NET 8 / Node.js<br/>- Soft Delete Cleanup<br/>- Storage Lifecycle]
+            end
+        end
+
+        subgraph "Data Layer - Azure Region: East US"
+            subgraph "Database Services"
+                SQLDB[(Azure SQL Database<br/>----------------------<br/>Tier: Standard S2-S4<br/>Storage: 250GB-1TB<br/>Backup: Auto 7-35 days<br/>- Metadata Store<br/>- Audit Logs<br/>- Point-in-Time Restore<br/>- TDE Enabled)]
+            end
+
+            subgraph "Storage Services"
+                Storage[Storage Account: docstoreprod<br/>----------------------<br/>Type: StorageV2 GPv2<br/>Redundancy: ZRS<br/>Containers:<br/>- documents hot<br/>- thumbnails cool<br/>Lifecycle Policies: 90 days<br/>Soft Delete: 30 days<br/>Encryption: 256-bit AES]
+            end
+
+            subgraph "Search Services"
+                CogSearch[Cognitive Search: docsearch-prod<br/>----------------------<br/>Tier: Standard S1<br/>Replicas: 2<br/>Partitions: 1<br/>Index: documents-index<br/>- Full-text Search<br/>- Faceted Navigation<br/>- Custom Analyzers]
+            end
+
+            subgraph "Message Queue"
+                SvcBus[Service Bus Namespace<br/>----------------------<br/>Tier: Standard<br/>Queue: ocr-processing<br/>- Message TTL: 7 days<br/>- Dead Letter Queue<br/>- Duplicate Detection]
+            end
+        end
+
+        subgraph "AI Services Layer - Azure Region: East US"
+            DocIntel[Document Intelligence<br/>----------------------<br/>Tier: S0 Standard<br/>API: Read 3.1<br/>- OCR Processing<br/>- Multi-format Support<br/>- Batch Processing]
+        end
+
+        subgraph "Management & Security Layer"
+            KeyVault[Key Vault: docs-kv-prod<br/>----------------------<br/>Tier: Standard<br/>Secrets:<br/>- DB Connection Strings<br/>- Storage Keys<br/>- API Keys<br/>- JWT Signing Key<br/>Access: Managed Identity]
+            
+            AppInsights[Application Insights<br/>----------------------<br/>Workspace Based<br/>Retention: 90 days<br/>- Performance Monitoring<br/>- Exception Tracking<br/>- Custom Telemetry<br/>- Alerts & Dashboards]
+            
+            LogAnalytics[Log Analytics Workspace<br/>----------------------<br/>Retention: 30 days<br/>- Centralized Logging<br/>- Query & Analytics<br/>- Security Insights]
+        end
+
+        subgraph "Network Security"
+            VNet[Virtual Network<br/>----------------------<br/>Address Space: 10.0.0.0/16<br/>Subnets:<br/>- App Service: 10.0.1.0/24<br/>- Functions: 10.0.2.0/24<br/>- Private Endpoints: 10.0.3.0/24]
+            
+            PrivEndpoint1[Private Endpoint<br/>SQL Database]
+            PrivEndpoint2[Private Endpoint<br/>Storage Account]
+        end
+    end
+
+    subgraph "DevOps Pipeline"
+        GitHub[GitHub Repository<br/>----------------------<br/>- Source Code<br/>- Infrastructure as Code<br/>- GitHub Actions CI/CD]
+    end
+
+    %% Connections
+    Users -->|HTTPS| AFD
+    AFD -->|Route| AAD
+    AFD -->|Route| SWA
+    AAD -.->|Authenticate| SWA
+    SWA -->|API Calls| AFD
+    AFD -->|Route| API
+    
+    API -->|Query| SQLDB
+    API -->|Upload/Download| Storage
+    API -->|Search| CogSearch
+    API -->|Queue Message| SvcBus
+    API -.->|Get Secrets| KeyVault
+    API -.->|Telemetry| AppInsights
+    
+    SvcBus -->|Trigger| Func1
+    Func1 -->|Process| DocIntel
+    Func1 -->|Read/Write| Storage
+    Func1 -->|Update| SQLDB
+    Func1 -->|Index| CogSearch
+    Func1 -.->|Get Secrets| KeyVault
+    Func1 -.->|Telemetry| AppInsights
+    
+    Func2 -->|Query| SQLDB
+    Func2 -->|Index| CogSearch
+    Func2 -.->|Telemetry| AppInsights
+    
+    Func3 -->|Cleanup| SQLDB
+    Func3 -->|Lifecycle| Storage
+    Func3 -.->|Telemetry| AppInsights
+    
+    API -.->|VNet Integration| VNet
+    Func1 -.->|VNet Integration| VNet
+    Func2 -.->|VNet Integration| VNet
+    Func3 -.->|VNet Integration| VNet
+    
+    VNet -->|Private Link| PrivEndpoint1
+    VNet -->|Private Link| PrivEndpoint2
+    PrivEndpoint1 -->|Secure Connection| SQLDB
+    PrivEndpoint2 -->|Secure Connection| Storage
+    
+    AppInsights -->|Logs| LogAnalytics
+    API -.->|Logs| LogAnalytics
+    
+    GitHub -->|Deploy| API
+    GitHub -->|Deploy| Func1
+    GitHub -->|Deploy| Func2
+    GitHub -->|Deploy| Func3
+    GitHub -->|Deploy| SWA
+
+    %% Styling
+    style Users fill:#e3f2fd
+    style AFD fill:#fff3e0
+    style AAD fill:#f3e5f5
+    style SWA fill:#e8f5e9
+    style API fill:#fff9c4
+    style Func1 fill:#fff9c4
+    style Func2 fill:#fff9c4
+    style Func3 fill:#fff9c4
+    style SQLDB fill:#e1f5fe
+    style Storage fill:#e1f5fe
+    style CogSearch fill:#e1f5fe
+    style SvcBus fill:#f3e5f5
+    style DocIntel fill:#fce4ec
+    style KeyVault fill:#ffebee
+    style AppInsights fill:#e0f2f1
+    style LogAnalytics fill:#e0f2f1
+    style VNet fill:#f1f8e9
+    style GitHub fill:#f5f5f5

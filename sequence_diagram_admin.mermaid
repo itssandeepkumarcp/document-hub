@@ -1,0 +1,86 @@
+sequenceDiagram
+    participant Admin as Manager/Admin
+    participant WebApp as Web Application
+    participant AAD as Azure AD B2C
+    participant API as API Backend
+    participant SQL as Azure SQL Database
+
+    Note over Admin,SQL: Admin Operations Flow
+
+    rect rgb(240, 248, 255)
+        Note over Admin,SQL: Category Management (Admin Only)
+        
+        Admin->>WebApp: Create new category
+        WebApp->>AAD: Validate admin token
+        AAD-->>WebApp: Role: manager
+        
+        WebApp->>API: POST /api/categories<br/>{name, description}
+        
+        API->>API: Check user role == "manager"
+        
+        alt User is manager
+            API->>SQL: INSERT INTO categories<br/>(name, description, created_by_user_id)
+            SQL-->>API: Category created
+            
+            API->>SQL: INSERT AuditLog<br/>(action: create_category)
+            
+            API-->>WebApp: 201 Created<br/>{category_id, name}
+            WebApp-->>Admin: Category created successfully
+        else User is not manager
+            API-->>WebApp: 403 Forbidden<br/>"Admin access required"
+            WebApp-->>Admin: Access denied
+        end
+    end
+
+    rect rgb(255, 245, 240)
+        Note over Admin,SQL: Document Deletion (Manager Only)
+        
+        Admin->>WebApp: Request to delete document
+        WebApp->>AAD: Validate manager token
+        AAD-->>WebApp: Role: manager
+        
+        WebApp->>API: DELETE /api/documents/{id}
+        
+        API->>API: Check user role == "manager"
+        
+        alt User is manager
+            API->>SQL: SELECT document details
+            SQL-->>API: Document record
+            
+            API->>SQL: UPDATE documents<br/>SET is_deleted=true,<br/>deleted_by_user_id=current_user,<br/>deleted_at=NOW()
+            SQL-->>API: Soft delete completed
+            
+            API->>SQL: INSERT AuditLog<br/>(action: delete_document,<br/>changes: document_snapshot)
+            
+            Note over API: Document remains in database<br/>and Blob Storage for audit trail
+            
+            API-->>WebApp: 200 OK<br/>{message: "Document deleted"}
+            WebApp-->>Admin: Document deleted successfully
+        else User is not manager
+            API-->>WebApp: 403 Forbidden<br/>"Manager access required"
+            WebApp-->>Admin: Access denied
+        end
+    end
+
+    rect rgb(240, 255, 240)
+        Note over Admin,SQL: Project Management
+        
+        Admin->>WebApp: Edit project details
+        WebApp->>API: PUT /api/projects/{id}<br/>{name, description}
+        
+        API->>SQL: SELECT project & check user is creator or manager
+        SQL-->>API: Project details
+        
+        alt User authorized
+            API->>SQL: UPDATE projects<br/>SET name=..., description=..., updated_at=NOW()
+            SQL-->>API: Project updated
+            
+            API->>SQL: INSERT AuditLog<br/>(action: update_project,<br/>changes: {old_values, new_values})
+            
+            API-->>WebApp: 200 OK<br/>{project_id, name}
+            WebApp-->>Admin: Project updated
+        else Not authorized
+            API-->>WebApp: 403 Forbidden
+            WebApp-->>Admin: Access denied
+        end
+    end
